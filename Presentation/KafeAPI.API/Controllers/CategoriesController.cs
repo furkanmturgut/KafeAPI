@@ -1,4 +1,5 @@
 ﻿using KafeAPI.Application.Dtos.CategoryDtos;
+using KafeAPI.Application.Dtos.ResponseDtos;
 using KafeAPI.Application.Services.Abstract;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +20,15 @@ namespace KafeAPI.API.Controllers
         public async Task<IActionResult> GetAllCategories()
         {
             var categories = await _categoryServices.GetAllCategoriesAsync();
+            if (!categories.Success)
+            {
+                if (categories.ErrorCodes == ErrorCodes.NotFound)
+                {
+                    return Ok(categories);
+                }
+
+                return BadRequest();
+            }
             return Ok(categories);
         }
 
@@ -26,27 +36,60 @@ namespace KafeAPI.API.Controllers
         public async Task<IActionResult> GetCategoryById(int id)
         {
             var category = await _categoryServices.GetCategoryByIdAsync(id);
+            if (!category.Success)
+            {
+                if (category.ErrorCodes == ErrorCodes.NotFound)
+                {
+                    return Ok(category);
+                }
+                return BadRequest();
+            }
+
             return Ok(category);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto createCategoryDto)
         {
-            await _categoryServices.AddCategoryAsync(createCategoryDto);
+            var result = await _categoryServices.AddCategoryAsync(createCategoryDto);
+            if (!result.Success)
+            {
+                if (result.ErrorCodes == ErrorCodes.ValidationError)
+                {
+                    return Ok(result);
+                }
+                return BadRequest();
+            }
             return Ok("Kategori oluşturuldu");
         }
 
         [HttpPut]
         public async Task<IActionResult> UpdateCategory([FromBody] UpdateCategoryDto updateCategoryDto)
         {
-            await _categoryServices.UpdateCategoryAsync(updateCategoryDto);
+            var result = await _categoryServices.UpdateCategoryAsync(updateCategoryDto);
+            if (!result.Success)
+            {
+                if (result.ErrorCodes is ErrorCodes.NotFound or ErrorCodes.ValidationError)
+                {
+                    return Ok(result);
+                }
+                return BadRequest();
+            }
             return Ok("Kategori güncellendi");
         }
 
         [HttpDelete]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            await _categoryServices.DeleteCategoryAsync(id);
+            var category = await _categoryServices.DeleteCategoryAsync(id);
+            if (!category.Success)
+            {
+                if (category.ErrorCodes == ErrorCodes.NotFound)
+                {
+                    return Ok(category);
+                }
+                return BadRequest();
+            }
             return Ok("Kategori silindi");
         }
     }
